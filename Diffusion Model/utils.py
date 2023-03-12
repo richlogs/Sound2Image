@@ -141,7 +141,7 @@ def get_data(args):  # Defines dataloaders and transformations for data
     ])
 
     val_transforms = torchvision.transforms.Compose([
-        T.Resize(img_size),
+        T.Resize(args.img_size),
         T.ToTensor(),
         T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
