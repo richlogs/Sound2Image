@@ -139,7 +139,7 @@ class Diffusion:
         labels = torch.arange(self.num_classes).long().to(self.device)
         sampled_images = self.sample(use_ema=False, labels=labels)
         ema_sampled_images = self.sample(use_ema=True, labels=labels)
-        plot_images(sampled_images)  #to display on jupyter if available
+        #plot_images(sampled_images)  #to display on jupyter if available
         if use_wandb:
             wandb.log({"sampled_images":     [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in sampled_images]})
             wandb.log({"ema_sampled_images": [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in ema_sampled_images]})

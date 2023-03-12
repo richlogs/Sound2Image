@@ -1,4 +1,4 @@
-import os, shutil, random
+import os, shutil, random, glob
 from pathlib import Path
 from kaggle import api
 import zipfile
@@ -8,7 +8,8 @@ import torchvision.transforms as T
 from PIL import Image
 from fastdownload import FastDownload
 from matplotlib import pyplot as plt
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+
 
 cifar_labels = "airplane,automobile,bird,cat,deer,dog,frog,horse,ship,truck".split(",")
 alphabet_labels = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".split(" ")
@@ -89,6 +90,35 @@ def save_images(images, path, **kwargs):
     im.save(path)
 
 
+class CustomDataset(Dataset):
+    def __init__(self, image_path, transform=None):
+        self.image_path = image_path # Set image path e.g. trial for demonstration, train for application
+        self.transform = transform
+        file_list = glob.glob(self.image_path + "*")
+
+        self.data = []
+        for class_path in file_list:
+            for img_path in glob.glob(class_path + "/*.jpg"):
+                self.data.append(img_path)
+
+        self.img_dim = (64, 64)
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        img_path = self.data[idx]
+        img = Image.open(img_path)
+        img = img.convert("RGB")
+        img_path = img_path.split("/")[-1]
+
+        if self.transform:
+            img = self.transform(img)
+
+        return img, img_path
+
+
+
+# Any paramater in get_data() should be found in args in actual implementation
 def get_data(args):  # Defines dataloaders and transformations for data
     train_transforms = torchvision.transforms.Compose([
         T.Resize(args.img_size + int(.25*args.img_size)),  # args.img_size + 1/4 *args.img_size
@@ -103,16 +133,43 @@ def get_data(args):  # Defines dataloaders and transformations for data
         T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
 
-    train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms) # Defines dataset format for dataloader
-    val_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.val_folder), transform=val_transforms)
+    # Creates Dataset object from the custom dataset class that I created
+    train_dataset = CustomDataset(image_path=f"{args.dataset_path}/{args.train_folder}/",transform=train_transforms) 
+    val_dataset = CustomDataset(image_path=f"{args.dataset_path}/{args.val_folder}/",transform=val_transforms)
     
-    if args.slice_size>1:
-        train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), args.slice_size))
-        val_dataset = torch.utils.data.Subset(val_dataset, indices=range(0, len(val_dataset), args.slice_size))
+    # if args.slice_size>1:
+    #     train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), args.slice_size))
+    #     val_dataset = torch.utils.data.Subset(val_dataset, indices=range(0, len(val_dataset), args.slice_size))
 
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers) #Defines the train dataloader
-    val_dataset = DataLoader(val_dataset, batch_size=2*args.batch_size, shuffle=False, num_workers=args.num_workers)
-    return train_dataloader, val_dataset
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True) #Defines the train dataloader
+    val_dataloader = DataLoader(val_dataset, batch_size=2*args.batch_size, shuffle=False)
+    return train_dataloader, val_dataloader
+
+
+# def get_data(args):  # Defines dataloaders and transformations for data
+#     train_transforms = torchvision.transforms.Compose([
+#         T.Resize(args.img_size + int(.25*args.img_size)),  # args.img_size + 1/4 *args.img_size
+#         T.RandomResizedCrop(args.img_size, scale=(0.8, 1.0)),
+#         T.ToTensor(),
+#         T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#     ])
+
+#     val_transforms = torchvision.transforms.Compose([
+#         T.Resize(args.img_size),
+#         T.ToTensor(),
+#         T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#     ])
+
+#     train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms) # Defines dataset format for dataloader
+#     val_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.val_folder), transform=val_transforms)
+    
+#     if args.slice_size>1:
+#         train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), args.slice_size))
+#         val_dataset = torch.utils.data.Subset(val_dataset, indices=range(0, len(val_dataset), args.slice_size))
+
+#     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers) #Defines the train dataloader
+#     val_dataset = DataLoader(val_dataset, batch_size=2*args.batch_size, shuffle=False, num_workers=args.num_workers)
+#     return train_dataloader, val_dataset
 
 
 def mk_folders(run_name):
