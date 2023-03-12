@@ -29,6 +29,8 @@ config = SimpleNamespace(
     img_size = 64,
     num_classes = 10,
     dataset_path = get_cifar(img_size=64),
+    embedding_path = "ENTER PATH TO ALL EMBEDDINGS.pt HERE",
+    name_path = "ENTER PATH TO EMBEDDINGS NAME.csv HERE",
     train_folder = "train",
     val_folder = "test",
     device = "cuda",
@@ -201,6 +203,8 @@ def parse_args(config):
     parser.add_argument('--img_size', type=int, default=config.img_size, help='image size')
     parser.add_argument('--num_classes', type=int, default=config.num_classes, help='number of classes')
     parser.add_argument('--dataset_path', type=str, default=config.dataset_path, help='path to dataset')
+    parser.add_argument('--embedding_path', type=str, default=config.embedding_path, help='path to all embedding file')  # SELF ADD
+    parser.add_argument('--name_path', type=str, default=config.name_path, help='path to embedding name file')  # SELF ADD
     parser.add_argument('--device', type=str, default=config.device, help='device')
     parser.add_argument('--use_wandb', type=bool, default=config.use_wandb, help='use wandb')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate')
