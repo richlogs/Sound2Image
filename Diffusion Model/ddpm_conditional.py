@@ -77,8 +77,8 @@ class Diffusion:
         return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * Ɛ, Ɛ
     
     @torch.inference_mode()
-    def sample(self, use_ema, labels, cfg_scale=3):
-        n = len(labels)
+    def sample(self, use_ema, labels, cfg_scale=3):  # TODO IS cfg_scale == classifier free guidance scaleing paramater
+        n = len(labels)  # TODO I will not be able to use this when I remove labels
         logging.info(f"Sampling {n} new images....")
         model = self.ema_model if use_ema else self.model
         model.eval()
@@ -86,7 +86,7 @@ class Diffusion:
             x = torch.randn((n, self.c_in, self.img_size, self.img_size)).to(self.device)
             for i in progress_bar(reversed(range(1, self.noise_steps)), total=self.noise_steps-1, leave=False):
                 t = (torch.ones(n) * i).long().to(self.device)
-                predicted_noise = model(x, t, labels)
+                predicted_noise = model(x, t, labels)  # samples an image 
                 if cfg_scale > 0:
                     uncond_predicted_noise = model(x, t, None)
                     predicted_noise = torch.lerp(uncond_predicted_noise, predicted_noise, cfg_scale)
@@ -125,7 +125,7 @@ class Diffusion:
                 x_t, noise = self.noise_images(images, t)
                 if np.random.random() < 0.1:
                     labels = None
-                predicted_noise = self.model(x_t, t, labels)  # gets label embedding and adds to timestep information
+                predicted_noise = self.model(x_t, t, labels)  # TODO swap label information with embedding info
                 loss = self.mse(noise, predicted_noise)
                 avg_loss += loss
             if train:
@@ -138,9 +138,9 @@ class Diffusion:
 
     def log_images(self, use_wandb=False):
         "Log images to wandb and save them to disk"
-        labels = torch.arange(self.num_classes).long().to(self.device)
-        sampled_images = self.sample(use_ema=False, labels=labels)
-        ema_sampled_images = self.sample(use_ema=True, labels=labels)
+        labels = torch.arange(self.num_classes).long().to(self.device)  #TODO Gets labels for label embeddings for sample arguments
+        sampled_images = self.sample(use_ema=False, labels=labels)  #TODO Samples images using label embeddings
+        ema_sampled_images = self.sample(use_ema=True, labels=labels)  #TODO Samples images using label embeddings ema
         #plot_images(sampled_images)  #to display on jupyter if available
         if use_wandb:
             wandb.log({"sampled_images":     [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in sampled_images]})
@@ -164,7 +164,7 @@ class Diffusion:
     def prepare(self, args):
         mk_folders(args.run_name)
         device = args.device
-        self.train_dataloader, self.val_dataloader = get_data(args)  # Creates dataloader using the get_data function in utils (dataloader is defined here)
+        self.train_dataloader, self.val_dataloader = get_data(args)  #DONE Creates dataloader using the get_data function in utils (dataloader is defined here)
         self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr, weight_decay=0.001)
         self.scheduler = optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=args.lr, 
                                                  steps_per_epoch=len(self.train_dataloader), epochs=args.epochs)
