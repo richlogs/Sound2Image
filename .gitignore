@@ -6,3 +6,4 @@ Readings
 Data
 Embeddings/audio/subURMPClean/train/all_embeddings.pt
 **/.DS_Store
+Embeddings/audio/subURMPClean/train/all_embeddings_pca.pt
